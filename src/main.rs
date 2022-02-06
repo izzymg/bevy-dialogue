@@ -3,6 +3,7 @@ use bevy::prelude::*;
 mod camera;
 mod input;
 mod math;
+mod mobs;
 mod physics;
 
 fn main() {
@@ -11,8 +12,10 @@ fn main() {
         .add_plugin(input::InputPlugin)
         .add_startup_system(setup_game_world)
         .add_startup_system(camera::startup_spawn_camera)
+        .add_startup_system(mobs::setup_spawn_mob)
         .add_system(camera::camera_handle_input.after("input").before("physics"))
         .add_system(physics::apply_velocity.label("physics").after("input"))
+        .add_system(mobs::check_interactable.after("physics"))
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();
 }
