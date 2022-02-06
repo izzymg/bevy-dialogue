@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*};
 
 use crate::camera;
 
@@ -18,13 +18,15 @@ pub fn setup_spawn_mob(
 
             ..Default::default()
         })
-        .insert(Interactable(Vec3::ONE * 2.0));
+        .insert(Interactable(Vec3::ONE * 1.0));
 }
 
 fn point_in_aabb(a_center: Vec3, b_center: Vec3, b_bounds: Vec3) -> bool {
-    (a_center.x >= b_center.x-b_bounds.x && a_center.x <= b_center.x + b_bounds.x) &&
-           (a_center.y >= b_center.y-b_bounds.y && a_center.y <= b_center.y + b_bounds.y) &&
-           (a_center.z >= b_center.z-b_bounds.z && a_center.z <= b_center.z + b_bounds.z)
+    let min_bounds = b_center - b_bounds;
+    let max_bounds = b_center + b_bounds;
+    (a_center.x >= min_bounds.x && a_center.x <= max_bounds.x) &&
+           (a_center.y >= min_bounds.y && a_center.y <= max_bounds.y) &&
+           (a_center.z >= min_bounds.z && a_center.z <= max_bounds.z)
   }
 
 pub fn check_interactable(
@@ -33,7 +35,8 @@ pub fn check_interactable(
 ) {
     let cam_trans = cam_query.single();
     for (inter_trans, inter_bounds) in interactable_query.iter() {
-        if point_in_aabb(cam_trans.translation, inter_trans.translation, inter_bounds.0) {
+        let cam_point = cam_trans.translation + (cam_trans.forward() * 2.0);
+        if point_in_aabb(cam_point, inter_trans.translation, inter_bounds.0) {
             println!("in box");
         }
     }
