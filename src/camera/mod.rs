@@ -42,5 +42,5 @@ pub fn camera_handle_input(
     let (mut cam_velocity, mut trans) = query.single_mut();
     trans.rotation =
         Quat::from_rotation_y(inputs.rot_dir.x) * Quat::from_rotation_x(inputs.rot_dir.y);
-    cam_velocity.0 = -inputs.wish_dir;
+    cam_velocity.0 = trans.rotation * -inputs.wish_dir;
 }
