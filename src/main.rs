@@ -1,5 +1,9 @@
 use bevy::prelude::*;
 
+mod camera;
+mod physics;
+mod input;
+
 #[derive(Default)]
 struct ModelEntity {
     pub mesh: Handle<Mesh>,
@@ -42,9 +46,17 @@ struct SpawnCube(Vec3);
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugin(input::InputPlugin)
+
         .init_resource::<Mobs>()
         .add_event::<SpawnCube>()
+
         .add_startup_system(setup_game_world)
+
+        .add_startup_system(camera::startup_spawn_camera)
+        .add_system(camera::camera_handle_input.after("input").before("physics"))
+        
+        .add_system(physics::apply_velocity.after("input").label("physics"))
         .add_system(handle_input.before("spawn_event"))
         .add_system(spawn_cube.label("spawn_event"))
         .run();
@@ -71,15 +83,11 @@ fn setup_game_world(
         transform: Transform::from_xyz(4.0, 8.0, 4.0),
         ..Default::default()
     });
-    // camera
-    commands.spawn_bundle(PerspectiveCameraBundle {
-        transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..Default::default()
-    });
+
 }
 
 fn handle_input(mut ev_spawn_cube: EventWriter<SpawnCube>, keys: Res<Input<KeyCode>>) {
-    if keys.just_released(KeyCode::W) {
+    if keys.just_released(KeyCode::O) {
         ev_spawn_cube.send(SpawnCube(Vec3::ONE))
     }
 }
