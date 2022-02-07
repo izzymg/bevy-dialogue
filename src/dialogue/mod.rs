@@ -3,15 +3,17 @@ use bevy::prelude::*;
 mod tree;
 
 const NORMAL_BUTTON: Color = Color::rgb(0.98, 0.98, 0.98);
-const HOVERED_BUTTON: Color = Color::rgb(0.80, 0.80, 0.80);
+const HOVERED_BUTTON: Color = Color::rgb(0.30, 0.30, 0.30);
 
-pub struct DialogueUpdateEvent(tree::DialogueNode);
+// UPDATE THE ROOT
+
+pub struct DialogueUpdateEvent;
 
 #[derive(Component)]
 pub struct DialogueUIRoot;
 
 #[derive(Component)]
-pub struct ResponseUIButton(tree::ResponseNode);
+pub struct ResponseUIButton(Option<&tree::DialogueNode>);
 
 #[derive(Component)]
 pub struct ResponseUIContainer;
@@ -30,9 +32,12 @@ pub fn response_button_system(
 ) {
     for (interaction, mut color) in interaction_query.iter_mut() {
         match *interaction {
-            Interaction::Clicked => {}
+            Interaction::Clicked => {
+                println!("Clicked");
+            }
             Interaction::Hovered => {
                 *color = HOVERED_BUTTON.into();
+                println!("HOVERED");
             }
             Interaction::None => {
                 *color = NORMAL_BUTTON.into();
@@ -41,7 +46,11 @@ pub fn response_button_system(
     }
 }
 
-pub fn setup_dialogue(mut commands: Commands, mut evw: EventWriter<DialogueUpdateEvent>) {
+pub fn setup_dialogue(
+    mut commands: Commands,
+    mut evw: EventWriter<DialogueUpdateEvent>,
+    dialogue_tree: Res<DialogueTreeRes>
+) {
     // Unlock cursor
 
     // Root
@@ -70,16 +79,7 @@ pub fn setup_dialogue(mut commands: Commands, mut evw: EventWriter<DialogueUpdat
                 .insert(ResponseUIContainer);
         });
 
-    // Setup dialogue
-    let dialogue = tree::DialogueNode {
-        text: "Hi".into(),
-        responses: vec![tree::ResponseNode {
-            text: "Hello".into(),
-            dialogue_node: None,
-        }],
-    };
-
-    evw.send(DialogueUpdateEvent(dialogue));
+    evw.send(DialogueUpdateEvent(dialogue_tree.root));
 }
 
 pub fn update_dialogue_ui(
@@ -109,6 +109,7 @@ pub fn update_dialogue_ui(
                         color: NORMAL_BUTTON.into(),
                         ..Default::default()
                     })
+                    .insert(ResponseUIButton(response.dialogue_node))
                     .with_children(|parent| {
                         parent.spawn_bundle(TextBundle {
                             text: Text::with_section(
@@ -133,11 +134,31 @@ pub fn cleanup_dialogue(mut commands: Commands, ui_query: Query<Entity, With<Dia
     commands.entity(ui_root).despawn_recursive();
 }
 
+pub struct DialogueTreeRes {
+    root: tree::DialogueNode,
+}
+
+impl FromWorld for DialogueTreeRes {
+    fn from_world(world: &mut World) -> Self {
+        let dialogue = tree::DialogueNode {
+            text: "Hi".into(),
+            responses: vec![tree::ResponseNode {
+                text: "Hello".into(),
+                dialogue_node: None,
+            }],
+        };
+        Self {
+            root: dialogue
+        }
+    }
+}
+
 pub struct DialoguePlugin;
 
 impl Plugin for DialoguePlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<DialogueUpdateEvent>()
+            .init_resource::<DialogueTreeRes>()
             // dialogue state
             .add_system_set(
                 SystemSet::on_enter(super::AppState::Dialogue)
