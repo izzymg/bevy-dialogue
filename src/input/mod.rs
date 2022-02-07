@@ -13,7 +13,7 @@ pub struct Inputs {
     pub rot_dir: Vec2,
 
     pub interact: bool,
-    pub exit_dialogue: bool
+    pub exit_dialogue: bool,
 }
 
 fn wrap_rotation(n: f32, min: f32, max: f32) -> f32 {

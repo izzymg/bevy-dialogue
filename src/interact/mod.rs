@@ -1,17 +1,17 @@
-use bevy::prelude::*;
 use crate::{camera, input};
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct Interactable(pub Vec3);
 
 pub struct Interaction {
-    pub current_interaction: Option<Entity>
+    pub current_interaction: Option<Entity>,
 }
 
 impl Default for Interaction {
     fn default() -> Self {
         Self {
-            current_interaction: None
+            current_interaction: None,
         }
     }
 }
@@ -19,15 +19,15 @@ impl Default for Interaction {
 fn point_in_aabb(a_center: Vec3, b_center: Vec3, b_bounds: Vec3) -> bool {
     let min_bounds = b_center - b_bounds;
     let max_bounds = b_center + b_bounds;
-    (a_center.x >= min_bounds.x && a_center.x <= max_bounds.x) &&
-           (a_center.y >= min_bounds.y && a_center.y <= max_bounds.y) &&
-           (a_center.z >= min_bounds.z && a_center.z <= max_bounds.z)
-  }
+    (a_center.x >= min_bounds.x && a_center.x <= max_bounds.x)
+        && (a_center.y >= min_bounds.y && a_center.y <= max_bounds.y)
+        && (a_center.z >= min_bounds.z && a_center.z <= max_bounds.z)
+}
 
 pub fn check_interactable(
     interactable_query: Query<(&Transform, &Interactable, Entity)>,
     cam_query: Query<&Transform, With<camera::MainCamera>>,
-    mut interaction: ResMut<Interaction>
+    mut interaction: ResMut<Interaction>,
 ) {
     let cam_trans = cam_query.single();
     for (inter_trans, inter_bounds, entity) in interactable_query.iter() {
@@ -44,7 +44,7 @@ pub fn check_interactable(
 pub fn start_interaction(
     inputs: Res<input::Inputs>,
     interaction: Res<Interaction>,
-    mut app_state: ResMut<State<super::AppState>>
+    mut app_state: ResMut<State<super::AppState>>,
 ) {
     if inputs.interact {
         if let Some(_) = interaction.current_interaction {

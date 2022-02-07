@@ -18,7 +18,7 @@ impl CameraBundle {
     fn new() -> Self {
         Self {
             cam: PerspectiveCameraBundle {
-                transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+                transform: Transform::from_xyz(0., 1., 3.0).looking_at(Vec3::ZERO, Vec3::Y),
                 ..Default::default()
             },
             main_cam: MainCamera {},
@@ -29,6 +29,7 @@ impl CameraBundle {
 
 pub fn startup_spawn_camera(mut commands: Commands, mut windows: ResMut<Windows>) {
     commands.spawn_bundle(CameraBundle::new());
+    commands.spawn_bundle(UiCameraBundle::default());
 
     let win = windows.get_primary_mut().unwrap();
     win.set_cursor_lock_mode(true);
