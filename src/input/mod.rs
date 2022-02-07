@@ -11,6 +11,9 @@ const YAW_MAX: f32 = 180. * math::DEG_TO_RAD;
 pub struct Inputs {
     pub wish_dir: Vec3,
     pub rot_dir: Vec2,
+
+    pub interact: bool,
+    pub exit_dialogue: bool
 }
 
 fn wrap_rotation(n: f32, min: f32, max: f32) -> f32 {
@@ -57,6 +60,9 @@ pub fn update_inputs(
 
         // println!("rot: {}", inputs.rot_dir * math::RAD_TO_DEG);
     }
+
+    inputs.interact = keys.just_released(KeyCode::E);
+    inputs.exit_dialogue = keys.just_released(KeyCode::Space);
 }
 
 pub struct InputPlugin;
