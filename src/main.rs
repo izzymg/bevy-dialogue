@@ -18,10 +18,12 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugin(input::InputPlugin)
+        .add_plugin(dialogue::DialoguePlugin)
         .insert_resource(interact::Interaction::default())
         .add_startup_system(setup_game_world)
         .add_startup_system(camera::startup_spawn_camera)
         .add_startup_system(mobs::setup_spawn_mob)
+        .add_startup_system(lock_cursor)
         .add_system(bevy::input::system::exit_on_esc_system)
         // game state
         .add_state(AppState::Game)
@@ -31,17 +33,6 @@ fn main() {
                 .with_system(physics::apply_velocity.label("physics").after("input"))
                 .with_system(interact::check_interactable.after("physics"))
                 .with_system(interact::start_interaction.after("input")),
-        )
-        // dialogue state
-        .add_system_set(
-            SystemSet::on_enter(AppState::Dialogue).with_system(dialogue::setup_dialogue),
-        )
-        .add_system_set(
-            SystemSet::on_update(AppState::Dialogue)
-                .with_system(dialogue::handle_inputs.after("input")),
-        )
-        .add_system_set(
-            SystemSet::on_exit(AppState::Dialogue).with_system(dialogue::cleanup_dialogue),
         )
         .run();
 }
@@ -67,4 +58,16 @@ fn setup_game_world(
         transform: Transform::from_xyz(4.0, 8.0, 4.0),
         ..Default::default()
     });
+}
+
+pub fn lock_cursor(mut windows: ResMut<Windows>) {
+    let win = windows.get_primary_mut().unwrap();
+    win.set_cursor_lock_mode(true);
+    win.set_cursor_visibility(false);
+}
+
+pub fn unlock_cursor(mut windows: ResMut<Windows>) {
+    let win = windows.get_primary_mut().unwrap();
+    win.set_cursor_lock_mode(false);
+    win.set_cursor_visibility(true);
 }

@@ -27,13 +27,9 @@ impl CameraBundle {
     }
 }
 
-pub fn startup_spawn_camera(mut commands: Commands, mut windows: ResMut<Windows>) {
+pub fn startup_spawn_camera(mut commands: Commands) {
     commands.spawn_bundle(CameraBundle::new());
     commands.spawn_bundle(UiCameraBundle::default());
-
-    let win = windows.get_primary_mut().unwrap();
-    win.set_cursor_lock_mode(true);
-    win.set_cursor_visibility(false);
 }
 
 pub fn camera_handle_input(
