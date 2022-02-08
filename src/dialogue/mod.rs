@@ -5,18 +5,57 @@ mod tree;
 const NORMAL_BUTTON: Color = Color::rgb(0.98, 0.98, 0.98);
 const HOVERED_BUTTON: Color = Color::rgb(0.30, 0.30, 0.30);
 
-// UPDATE THE ROOT
-
-pub struct DialogueUpdateEvent;
-
 #[derive(Component)]
 pub struct DialogueUIRoot;
 
 #[derive(Component)]
-pub struct ResponseUIButton(Option<&tree::DialogueNode>);
+pub struct ResponseUIButton {
+    // index of the response in the current dialogue tree root
+    response_index: usize,
+}
+
+impl ResponseUIButton {
+    fn new(response_index: usize) -> Self {
+        Self { response_index }
+    }
+}
+
+#[derive(Component)]
+pub struct DialogueText;
 
 #[derive(Component)]
 pub struct ResponseUIContainer;
+
+pub struct DialogueTreeRes {
+    root: tree::DialogueNode,
+}
+
+pub struct PostFlushEvent;
+
+impl FromWorld for DialogueTreeRes {
+    fn from_world(_: &mut World) -> Self {
+        let dialogue = tree::DialogueNode {
+            text: "Hi".into(),
+            responses: vec![
+                tree::ResponseNode {
+                    text: "Hello".into(),
+                    dialogue_node: Some(tree::DialogueNode {
+                        text: "Leave me alone, now.".into(),
+                        responses: vec![tree::ResponseNode {
+                            text: "Okay...".into(),
+                            dialogue_node: None,
+                        }],
+                    }),
+                },
+                tree::ResponseNode {
+                    text: "Goodbye".into(),
+                    dialogue_node: None,
+                },
+            ],
+        };
+        Self { root: dialogue }
+    }
+}
 
 pub fn handle_inputs(inputs: Res<input::Inputs>, mut app_state: ResMut<State<super::AppState>>) {
     if inputs.exit_dialogue {
@@ -26,18 +65,29 @@ pub fn handle_inputs(inputs: Res<input::Inputs>, mut app_state: ResMut<State<sup
 
 pub fn response_button_system(
     mut interaction_query: Query<
-        (&Interaction, &mut UiColor),
-        (Changed<Interaction>, With<ResponseUIButton>),
+        (&Interaction, &mut UiColor, &ResponseUIButton),
+        Changed<Interaction>,
     >,
+    mut dialogue_tree: ResMut<DialogueTreeRes>,
+    mut app_state: ResMut<State<super::AppState>>,
 ) {
-    for (interaction, mut color) in interaction_query.iter_mut() {
+    for (interaction, mut color, response_btn) in interaction_query.iter_mut() {
         match *interaction {
             Interaction::Clicked => {
-                println!("Clicked");
+                // TODO: probably inefficient
+                if let Some(node) = dialogue_tree.root.responses[response_btn.response_index]
+                    .dialogue_node
+                    .clone()
+                {
+                    // if there's new dialogue associated with the response, set the root dialogue to this
+                    dialogue_tree.root = node;
+                } else {
+                    // drop dialogue entirely if there's nothing else to be said
+                    app_state.set(super::AppState::Game).unwrap();
+                }
             }
             Interaction::Hovered => {
                 *color = HOVERED_BUTTON.into();
-                println!("HOVERED");
             }
             Interaction::None => {
                 *color = NORMAL_BUTTON.into();
@@ -46,19 +96,15 @@ pub fn response_button_system(
     }
 }
 
-pub fn setup_dialogue(
+pub fn setup_dialogue_ui(
     mut commands: Commands,
-    mut evw: EventWriter<DialogueUpdateEvent>,
-    dialogue_tree: Res<DialogueTreeRes>
+    asset_server: Res<AssetServer>,
 ) {
-    // Unlock cursor
-
-    // Root
+    // Root UI elements
     commands
         .spawn_bundle(NodeBundle {
             style: Style {
                 size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-                justify_content: JustifyContent::SpaceBetween,
                 ..Default::default()
             },
             color: Color::NONE.into(),
@@ -70,30 +116,86 @@ pub fn setup_dialogue(
             parent
                 .spawn_bundle(NodeBundle {
                     style: Style {
-                        size: Size::new(Val::Percent(100.0), Val::Percent(30.0)),
+                        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                        flex_direction: FlexDirection::ColumnReverse,
                         ..Default::default()
                     },
                     color: Color::rgb(0.25, 0.25, 0.25).into(),
                     ..Default::default()
                 })
-                .insert(ResponseUIContainer);
-        });
+                .with_children(|parent| {
+                    parent
+                        .spawn_bundle(TextBundle {
+                            style: Style {
+                                ..Default::default()
+                            },
 
-    evw.send(DialogueUpdateEvent(dialogue_tree.root));
+                            text: Text::with_section(
+                                "...".to_string(),
+                                TextStyle {
+                                    font: asset_server.load("fonts/FiraCode-Regular.ttf"),
+                                    font_size: 40.0,
+                                    color: Color::rgb(0.9, 0.9, 0.9),
+                                },
+                                Default::default(),
+                            ),
+                            ..Default::default()
+                        })
+                        .insert(DialogueText);
+                    parent
+                        .spawn_bundle(NodeBundle {
+                            style: Style {
+                                ..Default::default()
+                            },
+                            color: Color::rgb(0.25, 0.25, 0.25).into(),
+                            ..Default::default()
+                        })
+                        .insert(ResponseUIContainer);
+                });
+        });
 }
 
-pub fn update_dialogue_ui(
+pub fn flush_dialogue_ui(
     mut commands: Commands,
-    mut evr: EventReader<DialogueUpdateEvent>,
+    dialogue_tree: Res<DialogueTreeRes>,
+    container_query: Query<Entity, With<ResponseUIContainer>>,
+    mut evw: EventWriter<PostFlushEvent>
+) {
+    if dialogue_tree.is_changed() {
+        let container = container_query.single();
+        // Clear old response container buttons
+        commands.entity(container).despawn_descendants();
+        evw.send(PostFlushEvent);
+    }
+}
+
+pub fn update_dialogue_text_ui(
+    mut query: Query<&mut Text, With<DialogueText>>,
+    dialogue_tree: Res<DialogueTreeRes>,
+    mut evr: EventReader<PostFlushEvent>
+) {
+    // Catch dialogue flush event
+    for _ in evr.iter() {
+        for mut text in query.iter_mut() {
+            text.sections[0].value = format!("{}", dialogue_tree.root.text);
+        }
+    }
+}
+
+pub fn update_dialogue_response_ui(
+    mut commands: Commands,
+    dialogue_tree: Res<DialogueTreeRes>,
     container_query: Query<Entity, With<ResponseUIContainer>>,
     asset_server: Res<AssetServer>,
+    mut evr: EventReader<PostFlushEvent>
 ) {
-    for e in evr.iter() {
+    // Catch dialogue flush event
+    for _ in evr.iter() {
+        // Iterate over possible responses in root node
         let container = container_query.single();
-
-        for response in &e.0.responses {
+        for (i, response_node) in dialogue_tree.root.responses.iter().enumerate() {
+            // Add response buttons to container
             commands.entity(container).with_children(|parent| {
-                // Response buttons
                 parent
                     .spawn_bundle(ButtonBundle {
                         style: Style {
@@ -109,11 +211,11 @@ pub fn update_dialogue_ui(
                         color: NORMAL_BUTTON.into(),
                         ..Default::default()
                     })
-                    .insert(ResponseUIButton(response.dialogue_node))
+                    .insert(ResponseUIButton::new(i))
                     .with_children(|parent| {
                         parent.spawn_bundle(TextBundle {
                             text: Text::with_section(
-                                response.text.as_str(),
+                                response_node.text.as_str(),
                                 TextStyle {
                                     font: asset_server.load("fonts/FiraCode-Regular.ttf"),
                                     font_size: 40.0,
@@ -129,51 +231,34 @@ pub fn update_dialogue_ui(
     }
 }
 
-pub fn cleanup_dialogue(mut commands: Commands, ui_query: Query<Entity, With<DialogueUIRoot>>) {
+pub fn cleanup_dialogue_ui(mut commands: Commands, ui_query: Query<Entity, With<DialogueUIRoot>>) {
     let ui_root = ui_query.single();
     commands.entity(ui_root).despawn_recursive();
-}
-
-pub struct DialogueTreeRes {
-    root: tree::DialogueNode,
-}
-
-impl FromWorld for DialogueTreeRes {
-    fn from_world(world: &mut World) -> Self {
-        let dialogue = tree::DialogueNode {
-            text: "Hi".into(),
-            responses: vec![tree::ResponseNode {
-                text: "Hello".into(),
-                dialogue_node: None,
-            }],
-        };
-        Self {
-            root: dialogue
-        }
-    }
 }
 
 pub struct DialoguePlugin;
 
 impl Plugin for DialoguePlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<DialogueUpdateEvent>()
+        app
             .init_resource::<DialogueTreeRes>()
-            // dialogue state
+            .add_event::<PostFlushEvent>()
             .add_system_set(
                 SystemSet::on_enter(super::AppState::Dialogue)
-                    .with_system(setup_dialogue)
+                    .with_system(setup_dialogue_ui)
                     .with_system(crate::unlock_cursor),
             )
             .add_system_set(
                 SystemSet::on_update(super::AppState::Dialogue)
                     .with_system(handle_inputs.after("input"))
-                    .with_system(update_dialogue_ui)
-                    .with_system(response_button_system),
+                    .with_system(update_dialogue_response_ui.before("flush"))
+                    .with_system(update_dialogue_text_ui.before("flush"))
+                    .with_system(response_button_system.before("flush"))
+                    .with_system(flush_dialogue_ui.label("flush"))
             )
             .add_system_set(
                 SystemSet::on_exit(super::AppState::Dialogue)
-                    .with_system(cleanup_dialogue)
+                    .with_system(cleanup_dialogue_ui)
                     .with_system(crate::lock_cursor),
             );
     }
