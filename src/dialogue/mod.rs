@@ -96,10 +96,7 @@ pub fn response_button_system(
     }
 }
 
-pub fn setup_dialogue_ui(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-) {
+pub fn setup_dialogue_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Root UI elements
     commands
         .spawn_bundle(NodeBundle {
@@ -116,17 +113,33 @@ pub fn setup_dialogue_ui(
             parent
                 .spawn_bundle(NodeBundle {
                     style: Style {
-                        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-                        flex_direction: FlexDirection::ColumnReverse,
+                        size: Size::new(Val::Percent(100.0), Val::Percent(50.0)),
+                        flex_direction: FlexDirection::Column,
+                        justify_content: JustifyContent::FlexStart,
+                        align_items: AlignItems::FlexStart,
                         ..Default::default()
                     },
-                    color: Color::rgb(0.25, 0.25, 0.25).into(),
+                    color: Color::rgb(0.55, 0.25, 0.25).into(),
                     ..Default::default()
                 })
                 .with_children(|parent| {
                     parent
+                        .spawn_bundle(NodeBundle {
+                            style: Style {
+                                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                                flex_direction: FlexDirection::ColumnReverse,
+                                justify_content: JustifyContent::FlexStart,
+                                align_items: AlignItems::FlexStart,
+                                ..Default::default()
+                            },
+                            color: Color::rgb(0.25, 0.35, 0.25).into(),
+                            ..Default::default()
+                        })
+                        .insert(ResponseUIContainer);
+                    parent
                         .spawn_bundle(TextBundle {
                             style: Style {
+                                size: Size::new(Val::Percent(100.0), Val::Percent(20.0)),
                                 ..Default::default()
                             },
 
@@ -142,15 +155,6 @@ pub fn setup_dialogue_ui(
                             ..Default::default()
                         })
                         .insert(DialogueText);
-                    parent
-                        .spawn_bundle(NodeBundle {
-                            style: Style {
-                                ..Default::default()
-                            },
-                            color: Color::rgb(0.25, 0.25, 0.25).into(),
-                            ..Default::default()
-                        })
-                        .insert(ResponseUIContainer);
                 });
         });
 }
@@ -159,7 +163,7 @@ pub fn flush_dialogue_ui(
     mut commands: Commands,
     dialogue_tree: Res<DialogueTreeRes>,
     container_query: Query<Entity, With<ResponseUIContainer>>,
-    mut evw: EventWriter<PostFlushEvent>
+    mut evw: EventWriter<PostFlushEvent>,
 ) {
     if dialogue_tree.is_changed() {
         let container = container_query.single();
@@ -172,7 +176,7 @@ pub fn flush_dialogue_ui(
 pub fn update_dialogue_text_ui(
     mut query: Query<&mut Text, With<DialogueText>>,
     dialogue_tree: Res<DialogueTreeRes>,
-    mut evr: EventReader<PostFlushEvent>
+    mut evr: EventReader<PostFlushEvent>,
 ) {
     // Catch dialogue flush event
     for _ in evr.iter() {
@@ -187,7 +191,7 @@ pub fn update_dialogue_response_ui(
     dialogue_tree: Res<DialogueTreeRes>,
     container_query: Query<Entity, With<ResponseUIContainer>>,
     asset_server: Res<AssetServer>,
-    mut evr: EventReader<PostFlushEvent>
+    mut evr: EventReader<PostFlushEvent>,
 ) {
     // Catch dialogue flush event
     for _ in evr.iter() {
@@ -199,9 +203,6 @@ pub fn update_dialogue_response_ui(
                 parent
                     .spawn_bundle(ButtonBundle {
                         style: Style {
-                            size: Size::new(Val::Px(150.0), Val::Px(65.0)),
-                            // center button
-                            margin: Rect::all(Val::Auto),
                             // horizontally center child text
                             justify_content: JustifyContent::Center,
                             // vertically center child text
@@ -218,7 +219,7 @@ pub fn update_dialogue_response_ui(
                                 response_node.text.as_str(),
                                 TextStyle {
                                     font: asset_server.load("fonts/FiraCode-Regular.ttf"),
-                                    font_size: 40.0,
+                                    font_size: 20.0,
                                     color: Color::rgb(0.9, 0.9, 0.9),
                                 },
                                 Default::default(),
@@ -240,8 +241,7 @@ pub struct DialoguePlugin;
 
 impl Plugin for DialoguePlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_resource::<DialogueTreeRes>()
+        app.init_resource::<DialogueTreeRes>()
             .add_event::<PostFlushEvent>()
             .add_system_set(
                 SystemSet::on_enter(super::AppState::Dialogue)
@@ -254,7 +254,7 @@ impl Plugin for DialoguePlugin {
                     .with_system(update_dialogue_response_ui.before("flush"))
                     .with_system(update_dialogue_text_ui.before("flush"))
                     .with_system(response_button_system.before("flush"))
-                    .with_system(flush_dialogue_ui.label("flush"))
+                    .with_system(flush_dialogue_ui.label("flush")),
             )
             .add_system_set(
                 SystemSet::on_exit(super::AppState::Dialogue)
