@@ -1,30 +1,7 @@
 use crate::input;
 use bevy::prelude::*;
 mod tree;
-
-const NORMAL_BUTTON: Color = Color::rgb(0.98, 0.98, 0.98);
-const HOVERED_BUTTON: Color = Color::rgb(0.30, 0.30, 0.30);
-
-#[derive(Component)]
-pub struct DialogueUIRoot;
-
-#[derive(Component)]
-pub struct ResponseUIButton {
-    // index of the response in the current dialogue tree root
-    response_index: usize,
-}
-
-impl ResponseUIButton {
-    fn new(response_index: usize) -> Self {
-        Self { response_index }
-    }
-}
-
-#[derive(Component)]
-pub struct DialogueText;
-
-#[derive(Component)]
-pub struct ResponseUIContainer;
+mod ui;
 
 pub struct PostFlushEvent;
 
@@ -36,7 +13,7 @@ pub fn handle_inputs(inputs: Res<input::Inputs>, mut app_state: ResMut<State<sup
 
 pub fn response_button_system(
     mut interaction_query: Query<
-        (&Interaction, &mut UiColor, &ResponseUIButton),
+        (&Interaction, &mut UiColor, &ui::UIResponseButton),
         Changed<Interaction>,
     >,
     mut dialogue_tree: ResMut<tree::DialogueTree>,
@@ -58,74 +35,25 @@ pub fn response_button_system(
                 }
             }
             Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
+                *color = ui::HOVERED_BUTTON.into();
             }
             Interaction::None => {
-                *color = NORMAL_BUTTON.into();
+                *color = ui::NORMAL_BUTTON.into();
             }
         }
     }
 }
 
-pub fn setup_dialogue_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub fn setup_dialogue_ui(mut commands: Commands, ui_data: Res<ui::UIData>) {
     // Root UI elements
     commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-                ..Default::default()
-            },
-            color: Color::NONE.into(),
-            ..Default::default()
-        })
-        .insert(DialogueUIRoot)
+        .spawn_bundle(ui_data.build_root_node())
         .with_children(|parent| {
-            // Bottom bar
             parent
-                .spawn_bundle(NodeBundle {
-                    style: Style {
-                        size: Size::new(Val::Percent(100.0), Val::Percent(50.0)),
-                        flex_direction: FlexDirection::Column,
-                        justify_content: JustifyContent::FlexStart,
-                        align_items: AlignItems::FlexStart,
-                        ..Default::default()
-                    },
-                    color: Color::rgb(0.55, 0.25, 0.25).into(),
-                    ..Default::default()
-                })
+                .spawn_bundle(ui_data.build_bottom_bar())
                 .with_children(|parent| {
-                    parent
-                        .spawn_bundle(NodeBundle {
-                            style: Style {
-                                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-                                flex_direction: FlexDirection::ColumnReverse,
-                                justify_content: JustifyContent::FlexStart,
-                                align_items: AlignItems::FlexStart,
-                                ..Default::default()
-                            },
-                            color: Color::rgb(0.25, 0.35, 0.25).into(),
-                            ..Default::default()
-                        })
-                        .insert(ResponseUIContainer);
-                    parent
-                        .spawn_bundle(TextBundle {
-                            style: Style {
-                                size: Size::new(Val::Percent(100.0), Val::Percent(20.0)),
-                                ..Default::default()
-                            },
-
-                            text: Text::with_section(
-                                "...".to_string(),
-                                TextStyle {
-                                    font: asset_server.load("fonts/FiraCode-Regular.ttf"),
-                                    font_size: 40.0,
-                                    color: Color::rgb(0.9, 0.9, 0.9),
-                                },
-                                Default::default(),
-                            ),
-                            ..Default::default()
-                        })
-                        .insert(DialogueText);
+                    parent.spawn_bundle(ui_data.build_response_container());
+                    parent.spawn_bundle(ui_data.build_dialogue_text());
                 });
         });
 }
@@ -133,7 +61,7 @@ pub fn setup_dialogue_ui(mut commands: Commands, asset_server: Res<AssetServer>)
 pub fn flush_dialogue_ui(
     mut commands: Commands,
     dialogue_tree: Res<tree::DialogueTree>,
-    container_query: Query<Entity, With<ResponseUIContainer>>,
+    container_query: Query<Entity, With<ui::UIResponseContainer>>,
     mut evw: EventWriter<PostFlushEvent>,
 ) {
     if dialogue_tree.is_changed() {
@@ -145,7 +73,7 @@ pub fn flush_dialogue_ui(
 }
 
 pub fn update_dialogue_text_ui(
-    mut query: Query<&mut Text, With<DialogueText>>,
+    mut query: Query<&mut Text, With<ui::UIDialogueText>>,
     dialogue_tree: Res<tree::DialogueTree>,
     mut evr: EventReader<PostFlushEvent>,
 ) {
@@ -160,50 +88,33 @@ pub fn update_dialogue_text_ui(
 pub fn update_dialogue_response_ui(
     mut commands: Commands,
     dialogue_tree: Res<tree::DialogueTree>,
-    container_query: Query<Entity, With<ResponseUIContainer>>,
-    asset_server: Res<AssetServer>,
+    container_query: Query<Entity, With<ui::UIResponseContainer>>,
+    ui_data: Res<ui::UIData>,
     mut evr: EventReader<PostFlushEvent>,
 ) {
     // Catch dialogue flush event
     for _ in evr.iter() {
-        // Iterate over possible responses in root node
         let container = container_query.single();
+        // Iterate over possible responses in root node
         for (i, response_node) in dialogue_tree.root.responses.iter().enumerate() {
             // Add response buttons to container
             commands.entity(container).with_children(|parent| {
                 parent
-                    .spawn_bundle(ButtonBundle {
-                        style: Style {
-                            // horizontally center child text
-                            justify_content: JustifyContent::Center,
-                            // vertically center child text
-                            align_items: AlignItems::Center,
-                            ..Default::default()
-                        },
-                        color: NORMAL_BUTTON.into(),
-                        ..Default::default()
-                    })
-                    .insert(ResponseUIButton::new(i))
+                    .spawn_bundle(ui_data.build_response_button(i))
                     .with_children(|parent| {
-                        parent.spawn_bundle(TextBundle {
-                            text: Text::with_section(
-                                response_node.text.as_str(),
-                                TextStyle {
-                                    font: asset_server.load("fonts/FiraCode-Regular.ttf"),
-                                    font_size: 20.0,
-                                    color: Color::rgb(0.9, 0.9, 0.9),
-                                },
-                                Default::default(),
-                            ),
-                            ..Default::default()
-                        });
+                        parent.spawn_bundle(
+                            ui_data.build_response_button_text(response_node.text.as_str()),
+                        );
                     });
             });
         }
     }
 }
 
-pub fn cleanup_dialogue_ui(mut commands: Commands, ui_query: Query<Entity, With<DialogueUIRoot>>) {
+pub fn cleanup_dialogue_ui(
+    mut commands: Commands,
+    ui_query: Query<Entity, With<ui::UIDialogueRoot>>,
+) {
     let ui_root = ui_query.single();
     commands.entity(ui_root).despawn_recursive();
 }
@@ -214,6 +125,7 @@ impl Plugin for DialoguePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<tree::DialogueTree>()
             .add_event::<PostFlushEvent>()
+            .init_resource::<ui::UIData>()
             .add_system_set(
                 SystemSet::on_enter(super::AppState::Dialogue)
                     .with_system(setup_dialogue_ui)
