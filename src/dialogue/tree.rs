@@ -73,10 +73,20 @@ pub struct DialogueTree {
     pub root: DialogueNode,
 }
 
+impl DialogueTree {
+    pub fn regenerate(&mut self) {
+        self.root = generate_dialogue_from_yaml("./assets/dialogue/cube_dialogue.yaml");
+    }
+
+    fn new() -> Self {
+        Self {
+            root: generate_dialogue_from_yaml("./assets/dialogue/cube_dialogue.yaml"),
+        }
+    }
+}
+
 impl FromWorld for DialogueTree {
     fn from_world(_: &mut World) -> Self {
-        let root = generate_dialogue_from_yaml("./assets/dialogue/test_dialogue.yaml");
-
-        Self { root }
+        DialogueTree::new()
     }
 }

@@ -135,7 +135,7 @@ impl UIData {
                     TextAlignment {
                         horizontal: HorizontalAlign::Left,
                         vertical: VerticalAlign::Bottom,
-                    }
+                    },
                 ),
                 ..Default::default()
             },

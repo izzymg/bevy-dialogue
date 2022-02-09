@@ -1,0 +1,35 @@
+dialogue:
+  text: You've arrived a little early. We aren't quite finished building the fabric here, you see? 
+  responses:
+    - text: Fabric? What are you talking about? I didn't "arrive" anywhere.
+      dialogue:
+        text: Really? You arrived here only a minute ago. It matters not though. Considering you're here now, I'll permit you to wander, but I must warn you.
+        responses:
+          - text: Warn me? What is this place, anyway? Is there some sort of construction happening?
+            dialogue:
+              text: I suppose in a crude manner of speaking this area is a work-in-progress, yes. Just be sure you don't break something, or slip and fall beyond reality.
+              responses:
+                - text: I don't understand what you're talking about.
+                  dialogue: ~
+                - text: ...
+                  dialogue: ~
+          - text: How did I get here?
+            dialogue:
+              text: You started the game yourself, of course.
+              responses:
+                - text: Game? What kind of joke is this to you? I play no "games".
+                  dialogue: ~
+          - text: I don't need your warnings.
+            dialogue: ~
+    - text: What... are you?
+      dialogue:
+        text: My form responds to the whims of our creators.
+        responses:
+          - text: That doesn't make any sense. Are you saying you're a shapeshifter?
+            dialogue:
+              text: That attributes far too much intention on my part.
+              responses:
+                - text: ...
+                  dialogue: ~
+          - text: You're insane.
+            dialogue: ~

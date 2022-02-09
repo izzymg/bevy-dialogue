@@ -47,7 +47,11 @@ pub fn response_button_system(
     }
 }
 
-pub fn setup_dialogue_ui(mut commands: Commands, ui_data: Res<ui::UIData>) {
+pub fn setup_dialogue_ui(
+    mut commands: Commands,
+    ui_data: Res<ui::UIData>,
+    mut dialogue_tree: ResMut<tree::DialogueTree>,
+) {
     // Root UI elements
     commands
         .spawn_bundle(ui_data.build_root_node())
@@ -59,6 +63,9 @@ pub fn setup_dialogue_ui(mut commands: Commands, ui_data: Res<ui::UIData>) {
                     parent.spawn_bundle(ui_data.build_dialogue_text());
                 });
         });
+
+    // spawn dialogue tree
+    dialogue_tree.regenerate();
 }
 
 pub fn flush_dialogue_ui(
