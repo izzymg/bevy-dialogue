@@ -23,10 +23,13 @@ pub struct ResponseNode {
     pub dialogue_node: Option<DialogueNode>,
 }
 
-pub fn generate_dialogue_from_yaml(yaml_path: &str) -> DialogueNode {
+pub fn generate_dialogue_from_yaml(
+    stage_str: &std::string::String,
+    yaml_path: &str,
+) -> DialogueNode {
     let docs = YamlLoader::load_from_str(&fs::read_to_string(yaml_path).unwrap()).unwrap();
     let doc = &docs[0];
-    parse_dialogue_yaml(&doc["dialogue"])
+    parse_dialogue_yaml(&doc[stage_str.as_str()]["dialogue"])
 }
 
 pub fn parse_dialogue_yaml(yaml: &yaml::Yaml) -> DialogueNode {
@@ -51,7 +54,10 @@ pub fn parse_dialogue_yaml(yaml: &yaml::Yaml) -> DialogueNode {
 
 #[test]
 pub fn test_generate_dialogue_from_yaml() {
-    let node = generate_dialogue_from_yaml("./assets/dialogue/test_dialogue.yaml");
+    let node = generate_dialogue_from_yaml(
+        &"default".to_string(),
+        "./assets/dialogue/test_dialogue.yaml",
+    );
     assert_eq!(node.text, "Hi");
     assert_eq!(node.responses[0].text, "Hello");
     assert_eq!(
@@ -74,13 +80,16 @@ pub struct DialogueTree {
 }
 
 impl DialogueTree {
-    pub fn regenerate(&mut self) {
-        self.root = generate_dialogue_from_yaml("./assets/dialogue/cube_dialogue.yaml");
+    pub fn load_stage(&mut self, stage: &std::string::String) {
+        self.root = generate_dialogue_from_yaml(stage, "./assets/dialogue/cube_dialogue.yaml");
     }
 
     fn new() -> Self {
         Self {
-            root: generate_dialogue_from_yaml("./assets/dialogue/cube_dialogue.yaml"),
+            root: generate_dialogue_from_yaml(
+                &"default".to_string(),
+                "./assets/dialogue/cube_dialogue.yaml",
+            ),
         }
     }
 }

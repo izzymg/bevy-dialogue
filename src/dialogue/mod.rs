@@ -1,5 +1,6 @@
 use crate::input;
 use bevy::prelude::*;
+mod stages;
 mod tree;
 mod ui;
 
@@ -51,6 +52,7 @@ pub fn setup_dialogue_ui(
     mut commands: Commands,
     ui_data: Res<ui::UIData>,
     mut dialogue_tree: ResMut<tree::DialogueTree>,
+    dialogue_stage: Res<stages::DialogueStage>,
 ) {
     // Root UI elements
     commands
@@ -65,7 +67,7 @@ pub fn setup_dialogue_ui(
         });
 
     // spawn dialogue tree
-    dialogue_tree.regenerate();
+    dialogue_tree.load_stage(&dialogue_stage.stage);
 }
 
 pub fn flush_dialogue_ui(
@@ -136,6 +138,10 @@ impl Plugin for DialoguePlugin {
         app.init_resource::<tree::DialogueTree>()
             .add_event::<PostFlushEvent>()
             .init_resource::<ui::UIData>()
+            .init_resource::<stages::DialogueStage>()
+            .add_system_set(
+                SystemSet::on_update(super::AppState::Game).with_system(stages::progress_stages),
+            )
             .add_system_set(
                 SystemSet::on_enter(super::AppState::Dialogue)
                     .with_system(setup_dialogue_ui)
