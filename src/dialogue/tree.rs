@@ -30,21 +30,19 @@ pub fn generate_dialogue_from_yaml(yaml_path: &str) -> DialogueNode {
 }
 
 pub fn parse_dialogue_yaml(yaml: &yaml::Yaml) -> DialogueNode {
-    let mut responses: Vec<ResponseNode> = vec![];
-    for response_yaml in yaml["responses"].as_vec().unwrap().iter() {
-        let text = &response_yaml["text"].as_str().unwrap();
-
-        let response_dialogue_node = if response_yaml["dialogue"].is_null() {
-            None
-        } else {
-            Some(parse_dialogue_yaml(&response_yaml["dialogue"]))
-        };
-
-        responses.push(ResponseNode {
-            text: text.to_string(),
-            dialogue_node: response_dialogue_node,
-        });
-    }
+    let responses = yaml["responses"]
+        .as_vec()
+        .unwrap()
+        .iter()
+        .map(|response_yaml| ResponseNode {
+            text: response_yaml["text"].as_str().unwrap().to_string(),
+            dialogue_node: if response_yaml["dialogue"].is_null() {
+                None
+            } else {
+                Some(parse_dialogue_yaml(&response_yaml["dialogue"]))
+            },
+        })
+        .collect();
     DialogueNode {
         text: yaml["text"].as_str().unwrap().into(),
         responses,
@@ -56,11 +54,19 @@ pub fn test_generate_dialogue_from_yaml() {
     let node = generate_dialogue_from_yaml("./assets/dialogue/test_dialogue.yaml");
     assert_eq!(node.text, "Hi");
     assert_eq!(node.responses[0].text, "Hello");
-    assert_eq!(node.responses[0].dialogue_node.as_ref().unwrap().text, "I can't talk now.");
-    assert_eq!(node.responses[0].dialogue_node.as_ref().unwrap().responses[0].text, "Oh..");
-    assert_eq!(node.responses[0].dialogue_node.as_ref().unwrap().responses[0].dialogue_node, None);
+    assert_eq!(
+        node.responses[0].dialogue_node.as_ref().unwrap().text,
+        "I can't talk now."
+    );
+    assert_eq!(
+        node.responses[0].dialogue_node.as_ref().unwrap().responses[0].text,
+        "Oh.."
+    );
+    assert_eq!(
+        node.responses[0].dialogue_node.as_ref().unwrap().responses[0].dialogue_node,
+        None
+    );
     assert_eq!(node.responses[1].text, "Goodbye");
-    
 }
 
 pub struct DialogueTree {
@@ -70,7 +76,7 @@ pub struct DialogueTree {
 impl FromWorld for DialogueTree {
     fn from_world(_: &mut World) -> Self {
         let root = generate_dialogue_from_yaml("./assets/dialogue/test_dialogue.yaml");
-        
+
         Self { root }
     }
 }
