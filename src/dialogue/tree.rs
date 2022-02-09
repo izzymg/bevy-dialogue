@@ -18,11 +18,11 @@ pub struct ResponseNode {
     pub dialogue_node: Option<DialogueNode>,
 }
 
-pub struct DialogueTreeRes {
+pub struct DialogueTree {
     pub root: DialogueNode,
 }
 
-impl FromWorld for DialogueTreeRes {
+impl FromWorld for DialogueTree {
     fn from_world(_: &mut World) -> Self {
         let dialogue = DialogueNode {
             text: "Hi".into(),
