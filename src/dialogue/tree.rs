@@ -1,6 +1,11 @@
-use bevy::prelude::*;
+extern crate yaml_rust;
 
-#[derive(Clone)]
+use std::fs::{self};
+
+use bevy::prelude::*;
+use yaml_rust::{yaml, YamlLoader};
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct DialogueNode {
     pub text: std::string::String,
     pub responses: Vec<ResponseNode>,
@@ -12,10 +17,50 @@ impl Drop for DialogueNode {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ResponseNode {
     pub text: std::string::String,
     pub dialogue_node: Option<DialogueNode>,
+}
+
+pub fn generate_dialogue_from_yaml(yaml_path: &str) -> DialogueNode {
+    let docs = YamlLoader::load_from_str(&fs::read_to_string(yaml_path).unwrap()).unwrap();
+    let doc = &docs[0];
+    parse_dialogue_yaml(&doc["dialogue"])
+}
+
+pub fn parse_dialogue_yaml(yaml: &yaml::Yaml) -> DialogueNode {
+    let mut responses: Vec<ResponseNode> = vec![];
+    for response_yaml in yaml["responses"].as_vec().unwrap().iter() {
+        let text = &response_yaml["text"].as_str().unwrap();
+
+        let response_dialogue_node = if response_yaml["dialogue"].is_null() {
+            None
+        } else {
+            Some(parse_dialogue_yaml(&response_yaml["dialogue"]))
+        };
+
+        responses.push(ResponseNode {
+            text: text.to_string(),
+            dialogue_node: response_dialogue_node,
+        });
+    }
+    DialogueNode {
+        text: yaml["text"].as_str().unwrap().into(),
+        responses,
+    }
+}
+
+#[test]
+pub fn test_generate_dialogue_from_yaml() {
+    let node = generate_dialogue_from_yaml("./assets/dialogue/test_dialogue.yaml");
+    assert_eq!(node.text, "Hi");
+    assert_eq!(node.responses[0].text, "Hello");
+    assert_eq!(node.responses[0].dialogue_node.as_ref().unwrap().text, "I can't talk now.");
+    assert_eq!(node.responses[0].dialogue_node.as_ref().unwrap().responses[0].text, "Oh..");
+    assert_eq!(node.responses[0].dialogue_node.as_ref().unwrap().responses[0].dialogue_node, None);
+    assert_eq!(node.responses[1].text, "Goodbye");
+    
 }
 
 pub struct DialogueTree {
@@ -24,25 +69,8 @@ pub struct DialogueTree {
 
 impl FromWorld for DialogueTree {
     fn from_world(_: &mut World) -> Self {
-        let dialogue = DialogueNode {
-            text: "Hi".into(),
-            responses: vec![
-                ResponseNode {
-                    text: "Hello".into(),
-                    dialogue_node: Some(DialogueNode {
-                        text: "Leave me alone, now.".into(),
-                        responses: vec![ResponseNode {
-                            text: "Okay...".into(),
-                            dialogue_node: None,
-                        }],
-                    }),
-                },
-                ResponseNode {
-                    text: "Goodbye".into(),
-                    dialogue_node: None,
-                },
-            ],
-        };
-        Self { root: dialogue }
+        let root = generate_dialogue_from_yaml("./assets/dialogue/test_dialogue.yaml");
+        
+        Self { root }
     }
 }

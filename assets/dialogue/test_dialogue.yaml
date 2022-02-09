@@ -1,0 +1,11 @@
+dialogue:
+  text: Hi
+  responses:
+    - text: Hello
+      dialogue:
+        text: I can't talk now.
+        responses:
+          - text: Oh..
+            dialogue: ~
+    - text: Goodbye
+      dialogue: ~
