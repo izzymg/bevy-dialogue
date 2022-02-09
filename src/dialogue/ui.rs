@@ -112,7 +112,16 @@ impl UIData {
             tag: UIDialogueText,
             text_bundle: TextBundle {
                 style: Style {
-                    size: Size::new(Val::Percent(100.0), Val::Percent(20.0)),
+                    size: Size::new(Val::Percent(100.0), Val::Percent(80.0)),
+                    max_size: Size {
+                        width: Val::Px(900.0),
+                        height: Val::Undefined,
+                    },
+                    margin: Rect {
+                        left: Val::Px(10.0),
+                        bottom: Val::Px(10.0),
+                        ..Default::default()
+                    },
                     ..Default::default()
                 },
 
@@ -120,10 +129,13 @@ impl UIData {
                     "...".to_string(),
                     TextStyle {
                         font: self.font_handle.clone(),
-                        font_size: 40.0,
+                        font_size: 20.0,
                         color: Color::rgb(0.9, 0.9, 0.9),
                     },
-                    Default::default(),
+                    TextAlignment {
+                        horizontal: HorizontalAlign::Left,
+                        vertical: VerticalAlign::Bottom,
+                    }
                 ),
                 ..Default::default()
             },
