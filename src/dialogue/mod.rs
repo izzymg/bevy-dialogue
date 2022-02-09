@@ -26,36 +26,8 @@ pub struct DialogueText;
 #[derive(Component)]
 pub struct ResponseUIContainer;
 
-pub struct DialogueTreeRes {
-    root: tree::DialogueNode,
-}
-
 pub struct PostFlushEvent;
 
-impl FromWorld for DialogueTreeRes {
-    fn from_world(_: &mut World) -> Self {
-        let dialogue = tree::DialogueNode {
-            text: "Hi".into(),
-            responses: vec![
-                tree::ResponseNode {
-                    text: "Hello".into(),
-                    dialogue_node: Some(tree::DialogueNode {
-                        text: "Leave me alone, now.".into(),
-                        responses: vec![tree::ResponseNode {
-                            text: "Okay...".into(),
-                            dialogue_node: None,
-                        }],
-                    }),
-                },
-                tree::ResponseNode {
-                    text: "Goodbye".into(),
-                    dialogue_node: None,
-                },
-            ],
-        };
-        Self { root: dialogue }
-    }
-}
 
 pub fn handle_inputs(inputs: Res<input::Inputs>, mut app_state: ResMut<State<super::AppState>>) {
     if inputs.exit_dialogue {
@@ -68,7 +40,7 @@ pub fn response_button_system(
         (&Interaction, &mut UiColor, &ResponseUIButton),
         Changed<Interaction>,
     >,
-    mut dialogue_tree: ResMut<DialogueTreeRes>,
+    mut dialogue_tree: ResMut<tree::DialogueTreeRes>,
     mut app_state: ResMut<State<super::AppState>>,
 ) {
     for (interaction, mut color, response_btn) in interaction_query.iter_mut() {
@@ -161,7 +133,7 @@ pub fn setup_dialogue_ui(mut commands: Commands, asset_server: Res<AssetServer>)
 
 pub fn flush_dialogue_ui(
     mut commands: Commands,
-    dialogue_tree: Res<DialogueTreeRes>,
+    dialogue_tree: Res<tree::DialogueTreeRes>,
     container_query: Query<Entity, With<ResponseUIContainer>>,
     mut evw: EventWriter<PostFlushEvent>,
 ) {
@@ -175,7 +147,7 @@ pub fn flush_dialogue_ui(
 
 pub fn update_dialogue_text_ui(
     mut query: Query<&mut Text, With<DialogueText>>,
-    dialogue_tree: Res<DialogueTreeRes>,
+    dialogue_tree: Res<tree::DialogueTreeRes>,
     mut evr: EventReader<PostFlushEvent>,
 ) {
     // Catch dialogue flush event
@@ -188,7 +160,7 @@ pub fn update_dialogue_text_ui(
 
 pub fn update_dialogue_response_ui(
     mut commands: Commands,
-    dialogue_tree: Res<DialogueTreeRes>,
+    dialogue_tree: Res<tree::DialogueTreeRes>,
     container_query: Query<Entity, With<ResponseUIContainer>>,
     asset_server: Res<AssetServer>,
     mut evr: EventReader<PostFlushEvent>,
@@ -241,7 +213,7 @@ pub struct DialoguePlugin;
 
 impl Plugin for DialoguePlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<DialogueTreeRes>()
+        app.init_resource::<tree::DialogueTreeRes>()
             .add_event::<PostFlushEvent>()
             .add_system_set(
                 SystemSet::on_enter(super::AppState::Dialogue)
