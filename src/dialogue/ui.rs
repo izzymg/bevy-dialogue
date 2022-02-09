@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 pub const NORMAL_BUTTON: Color = Color::rgb(0.98, 0.98, 0.98);
-pub const HOVERED_BUTTON: Color = Color::rgb(0.30, 0.30, 0.30);
+pub const HOVERED_BUTTON: Color = Color::rgb(0.70, 0.70, 0.70);
 
 #[derive(Component)]
 pub struct UIDialogueRoot;
@@ -82,9 +82,10 @@ impl UIData {
                 flex_direction: FlexDirection::Column,
                 justify_content: JustifyContent::FlexStart,
                 align_items: AlignItems::FlexStart,
+                padding: Rect::all(Val::Percent(5.0)),
                 ..Default::default()
             },
-            color: Color::rgb(0.55, 0.25, 0.25).into(),
+            color: Color::rgb(0.13, 0.13, 0.13).into(),
             ..Default::default()
         }
     }
@@ -100,7 +101,7 @@ impl UIData {
                     align_items: AlignItems::FlexStart,
                     ..Default::default()
                 },
-                color: Color::rgb(0.25, 0.35, 0.25).into(),
+                color: Color::rgb(0.13, 0.13, 0.13).into(),
                 ..Default::default()
             },
         }
@@ -140,7 +141,7 @@ impl UIData {
                     align_items: AlignItems::Center,
                     ..Default::default()
                 },
-                color: NORMAL_BUTTON.into(),
+                color: Color::NONE.into(),
                 ..Default::default()
             },
         }
@@ -149,7 +150,7 @@ impl UIData {
     pub fn build_response_button_text(&self, text: &str) -> TextBundle {
         TextBundle {
             text: Text::with_section(
-                text,
+                format!("> {}", text),
                 TextStyle {
                     font: self.font_handle.clone(),
                     font_size: 20.0,

@@ -13,13 +13,16 @@ pub fn handle_inputs(inputs: Res<input::Inputs>, mut app_state: ResMut<State<sup
 
 pub fn response_button_system(
     mut interaction_query: Query<
-        (&Interaction, &mut UiColor, &ui::UIResponseButton),
+        (&Interaction, &Children, &ui::UIResponseButton),
         Changed<Interaction>,
     >,
+    mut text_query: Query<&mut Text>,
     mut dialogue_tree: ResMut<tree::DialogueTree>,
     mut app_state: ResMut<State<super::AppState>>,
 ) {
-    for (interaction, mut color, response_btn) in interaction_query.iter_mut() {
+    for (interaction, children, response_btn) in interaction_query.iter_mut() {
+        let mut text = text_query.get_mut(children[0]).unwrap();
+
         match *interaction {
             Interaction::Clicked => {
                 // TODO: probably inefficient
@@ -35,10 +38,10 @@ pub fn response_button_system(
                 }
             }
             Interaction::Hovered => {
-                *color = ui::HOVERED_BUTTON.into();
+                text.sections[0].style.color = ui::HOVERED_BUTTON.into();
             }
             Interaction::None => {
-                *color = ui::NORMAL_BUTTON.into();
+                text.sections[0].style.color = ui::NORMAL_BUTTON.into();
             }
         }
     }
