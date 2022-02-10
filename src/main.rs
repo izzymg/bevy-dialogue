@@ -7,6 +7,7 @@ mod interact;
 mod math;
 mod mobs;
 mod physics;
+mod ui;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum AppState {
@@ -18,6 +19,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugin(input::InputPlugin)
+        .add_plugin(ui::UIPlugin)
         .add_plugin(dialogue::DialoguePlugin)
         .insert_resource(interact::Interaction::default())
         .add_startup_system(setup_game_world)
