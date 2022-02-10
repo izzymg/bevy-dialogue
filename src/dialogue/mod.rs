@@ -27,10 +27,13 @@ pub fn response_button_system(
         match *interaction {
             Interaction::Clicked => {
                 // TODO: probably inefficient
-                if let Some(node) = dialogue_tree.root.responses[response_btn.response_index]
-                    .dialogue_node
-                    .clone()
-                {
+
+                let response_node = dialogue_tree
+                    .root
+                    .responses
+                    .swap_remove(response_btn.response_index);
+
+                if let Some(node) = response_node.dialogue_node {
                     // if there's new dialogue associated with the response, set the root dialogue to this
                     dialogue_tree.root = node;
                 } else {
